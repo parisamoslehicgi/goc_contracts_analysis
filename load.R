@@ -1,12 +1,15 @@
+# setwd(dirname(getActiveDocumentContext()$path))
+
 # Load libraries and helper functions
 source("lib/helpers.R")
+
 source("lib/amendments.R")
 source("lib/vendors.R")
 source("lib/categories.R")
 source("lib/inflation_adjustments.R")
 source("lib/exports.R")
 source("lib/research_findings.R")
-
+##
 # Start time
 run_start_time <- now()
 paste("Start time:", run_start_time)
@@ -16,7 +19,7 @@ add_log_entry("start_time", run_start_time)
 
 # Summary parameters (used below)
 summary_start_fiscal_year_short <- 2017
-summary_end_fiscal_year_short <- 2021
+summary_end_fiscal_year_short <- 2024
 summary_vendor_annual_total_threshold <- 1000000
 summary_vendor_recent_threshold_years <- 2
 
@@ -163,7 +166,7 @@ contracts <- contracts %>%
       TRUE ~ reference_number
     )
   )
-
+##########################################################################
 # Remove any suffixes (of 3 characters/digits or less) from procurement IDs, to improve the accuracy of procurement ID-based amendment grouping.
 # Note: This could be refactored using regexes instead of a multi-stage mutate with string locations. The code below reverses the order of the procurement ID, finds the first "/" (used to denote suffixes in procurement IDs), and if it exists and is less than or equal to 4 characters (including the "/") then it uses the procurement ID with that suffix portion removed.
 contracts <- contracts %>%
@@ -416,6 +419,39 @@ contract_descriptions_object_codes <- contract_descriptions_object_codes %>%
   distinct(d_economic_object_code, .keep_all = TRUE)
 
 
+################# Parisa added #####################
+library(dplyr)
+
+contracts_filtered_like_CGI <- contracts %>%
+  filter(grepl("CGI", d_vendor_name, ignore.case = TRUE))
+contracts_filtered_like_CGI <- contracts_filtered_like_CGI %>%
+  distinct(d_vendor_name)
+
+contracts_CGI_only <- contracts[contracts$d_vendor_name %in% c("CGI"), ]
+contracts_CGI_only_ <- contracts_CGI_only %>%
+  distinct(d_vendor_name)
+
+distinct_categories <- contracts_CGI_only %>%
+  distinct(category)
+# 
+# print(distinct_categories)
+# 3_information_technology     
+# 9_human_capital              
+# 2_professional_services      
+# 11_defence                   
+# 0_other                      
+# 1_facilities_and_construction
+contracts_cat <- contracts[contracts$category %in% c("3_information_technology", "9_human_capital", "2_professional_services", "11_defence", "0_other"), ]
+contracts_cat_cgi <- contracts_cat[contracts_cat$d_vendor_name %in% c("CGI"), ]
+contracts_cat_cgi %>%
+  write_csv("contracts_cgi_categories.csv")
+
+contracts <- contracts[contracts$category %in% c("3_information_technology", "9_human_capital", "2_professional_services", "11_defence", "0_other"), ]
+
+#########################################################
+
+##########################################
+
 # Amendment group identification ================
 
 add_log_entry("start_amendment_grouping")
@@ -424,6 +460,9 @@ add_log_entry("start_amendment_grouping")
 contracts <- find_amendment_groups_v2(contracts)
 
 add_log_entry("finish_amendment_grouping")
+
+
+##########################################
 
 # Group contracts and amendments together =========
 
@@ -450,7 +489,7 @@ contract_spending_overall <- contracts %>%
     # Note: this previously ordered by d_original_original_value, but in some cases that
     # led to amendment percentage increase errors (due to inconsistent data entry by departments).
     # TODO: review how this handles NA entries, hopefully na.omit() works well here.
-    d_original_contract_value = first(na.omit(d_original_original_value), order_by = d_reporting_period),
+    d_original_contract_value = first(d_original_original_value, order_by = d_reporting_period),
     d_overall_contract_value = last(na.omit(d_contract_value)),
     d_daily_contract_value = d_overall_contract_value / as.integer(d_overall_end_date - d_overall_start_date + 1), # The +1 is added so it's inclusive of the start and end dates themselves.
     # Avoid multiple entries appearing due to previous amendment totals
@@ -529,7 +568,13 @@ contracts_individual_entries <- contracts %>%
 # print("Reminder: removing the 'contracts' data frame to save memory.")
 # rm(contracts)
 
+##############   MOHAMMAD    ######################
+write.csv(contracts, "contract_large_file.csv")
+write.csv(contract_spending_overall, "contract_spending_overall_file.csv")
+#####################################################
+write.csv(owner_orgs, "owner_orgs.csv")
 
+###################################################################################
 
 # Calculate contract spending over time (pivot and complete into per-day data) =======
 
@@ -578,7 +623,23 @@ contract_spending_by_date <- contract_spending_by_date %>%
 # This could optionally be done before the fiscal year range above,
 # but it's probably a tiny bit faster to do it afterwards with fewer rows.
 add_log_entry("start_inflation_calculations")
-add_log_entry("inflation_price_index_vector", option_inflation_price_index_vector)
+
+#####################  Mohammad Added ####################################
+# I am commenting the option_inflation_price_index_vector as "option_inflation_price_index_vector" as there is no object option_inflation_price_index_vector found
+#add_log_entry("inflation_price_index_vector", option_inflation_price_index_vector)
+
+##################### Parisa added ###################################
+# file_path <- "C:/Users/parisa.moslehi/PycharmProjects/contracts-data-1/data/out/inflation_adjustments/constant_dollars_multiplier_monthly.csv"
+
+# file_path <- "C:/Users/mohammad.asgharzadeh/Documents/PROJECTS/Government Contracts/contracts-data/data/out/inflation_adjustments/constant_dollars_multiplier_monthly.csv"
+
+
+# file_path <- "C:/Users/a.rezaei/Projects/GoC Contract/contracts-data/data/out/inflation_adjustments/constant_dollars_multiplier_monthly.csv"
+
+file_path <- "data/out/inflation_adjustments/constant_dollars_multiplier_monthly.csv"
+
+constant_dollars_multiplier_table <- read.csv(file_path)
+###############################################################################
 
 contract_spending_by_date <- contract_spending_by_date %>%
   mutate(
@@ -615,6 +676,49 @@ contract_spending_overall_active <- contract_spending_overall %>%
     d_overall_start_date < ymd(str_c(summary_end_fiscal_year_short + 1,"04","01"))
   )
 
+##################### Parisa added ############################
+date_12_months_later <- Sys.Date() + months(12)
+date_24_months_later <- Sys.Date() + months(24)
+date_03_months_later <- Sys.Date() + months(3)
+
+contract_spending_overall_expiring_12 <- contract_spending_overall %>%
+  filter(
+    d_overall_end_date >= date_12_months_later,
+  )
+
+contract_spending_overall_expiring <- contract_spending_overall %>%
+  filter(
+    d_overall_end_date >= date_12_months_later & d_overall_end_date <= date_24_months_later
+  )
+
+contract_spending_overall_expiring_new <- contract_spending_overall %>%
+#  filter(d_overall_end_date < as.Date('2024-01-01') & d_overall_end_date > Sys.Date() )
+   filter(d_overall_end_date >= Sys.Date() & d_overall_end_date <= date_03_months_later)
+write.csv(contract_spending_overall_expiring_new, file = "data/out/contract_spending_overall_expiring.csv", row.names = FALSE)
+
+
+#write.csv(contract_spending_overall_expiring, file = "contract_spending_overall_expiring.csv", row.names = FALSE)
+write.csv(contract_spending_overall, file = "contract_spending_overall.csv", row.names = FALSE)
+
+###############################################################
+##### Added by Debaleena #################
+contracts_it_only <- contracts[contracts$category %in% c("3_information_technology"), ]
+contracts_it_only  <- contracts_it_only %>%
+  select(
+    owner_org,
+    owner_org_title,
+    d_vendor_name,
+    d_reporting_year,
+    d_start_date,
+    d_end_date,
+    d_contract_value,
+    category,
+    d_it_subcategory
+  )
+contracts_it_only %>%
+  write_csv("contracts_it_categories.csv")
+add_log_entry("total_csv_entries", count(contracts_it_only))
+####################################################################################
 
 # Summaries =====================================
 
@@ -679,20 +783,10 @@ if(option_filter_enabled == FALSE) {
 }
 
 
-# Optional bulk exports
-# TODO: add option flag
 
-contract_spending_overall_ongoing %>% 
-  # slice_head(n = 20) %>% 
-  arrange(owner_org, d_overall_start_date, d_vendor_name, desc(d_overall_end_date)) %>% 
-    write_csv("../contracts-data-bulk-output/2023-06-07/contract_spending_overall_ongoing.csv", na = "")
 
-contract_spending_overall %>% 
-  # slice_head(n = 20) %>% 
-  arrange(owner_org, d_overall_start_date, d_vendor_name, desc(d_overall_end_date)) %>% 
-  write_csv("../contracts-data-bulk-output/2023-06-07/contract_spending_overall.csv", na = "")
 
-# zip::zip("../contracts-data-bulk-output/2023-06-07/contract_spending_overall_ongoing.csv.zip", "../contracts-data-bulk-output/2023-06-07/contract_spending_overall_ongoing.csv")
+
 
 # Summary by owner_org, vendor, and category =======
 
@@ -772,14 +866,49 @@ it_subcategories <- contracts_individual_entries %>%
 
 summary_it_subcategories = tibble(it_subcategory = it_subcategories)
 
-summary_it_subcategories <- summary_it_subcategories %>%
+# summary_it_subcategories <- summary_it_subcategories %>%
+#   mutate(
+#     !!str_c("summary_by_vendor_overall", "_", summary_overall_years_file_suffix) := map(it_subcategory, get_summary_overall_total_by_vendor_by_it_subcategory),
+#     summary_by_fiscal_year = map(it_subcategory, get_summary_total_by_fiscal_year_by_it_subcategory),
+#     summary_by_fiscal_year_by_vendor = map(it_subcategory, get_summary_total_by_vendor_and_fiscal_year_by_it_subcategory),
+#     !!str_c("summary_by_department_overall", "_", summary_overall_years_file_suffix) := map(it_subcategory, get_summary_overall_total_by_owner_org_by_it_subcategory),
+#     summary_by_fiscal_year_by_department = map(it_subcategory, get_summary_total_by_owner_org_and_fiscal_year_by_it_subcategory),
+#     summary_by_dept_venor_fiscal_year = map(it_subcategory,get_summary_total_by_owner_org_and_vendor_and_fiscal_year_by_it_subcategory)
+#     )
+
+#######Added by Debaleena ##############
+# for(each_it_subcategory in it_subcategories)
+#  summary_by_dept_venor_fiscal_year = get_summary_total_by_owner_org_and_vendor_and_fiscal_year_by_it_subcategory(each_it_subcategory)
+# write.csv(summary_by_dept_venor_fiscal_year, "summary_by_dept_venor_fiscal_year.csv")
+
+########################################
+
+##### added by Mo ######
+# summary_by_dept_vendor_fiscal_year <- contract_spending_by_date %>% filter(d_most_recent_category == "3_information_technology") %>%
+#   group_by(d_fiscal_year_short, owner_org, d_vendor_name, d_most_recent_it_subcategory) %>%
+#   summarise(
+#     total = sum(d_daily_contract_value, na.rm = TRUE)
+#   ) %>%
+#   ungroup() %>%
+#   mutate(
+#     d_fiscal_year = convert_start_year_to_fiscal_year(d_fiscal_year_short)
+#   )
+# summary_by_dept_vendor_fiscal_year$d_fiscal_year_short <- NULL
+# write.csv(summary_by_dept_vendor_fiscal_year, "summary_by_dept_vendor_fiscal_year.csv")
+
+###### added by Ali ######
+summary_by_dept_vendor_fiscal_year <- contract_spending_by_date %>%
+  group_by(d_fiscal_year_short, owner_org, d_vendor_name, d_most_recent_it_subcategory, d_most_recent_category) %>%
+  summarise(
+    total = sum(d_daily_contract_value, na.rm = TRUE)
+  ) %>%
+  ungroup() %>%
   mutate(
-    !!str_c("summary_by_vendor_overall", "_", summary_overall_years_file_suffix) := map(it_subcategory, get_summary_overall_total_by_vendor_by_it_subcategory),
-    summary_by_fiscal_year = map(it_subcategory, get_summary_total_by_fiscal_year_by_it_subcategory),
-    summary_by_fiscal_year_by_vendor = map(it_subcategory, get_summary_total_by_vendor_and_fiscal_year_by_it_subcategory),
-    !!str_c("summary_by_department_overall", "_", summary_overall_years_file_suffix) := map(it_subcategory, get_summary_overall_total_by_owner_org_by_it_subcategory),
-    summary_by_fiscal_year_by_department = map(it_subcategory, get_summary_total_by_owner_org_and_fiscal_year_by_it_subcategory),
+    d_fiscal_year = convert_start_year_to_fiscal_year(d_fiscal_year_short)
   )
+write.csv(summary_by_dept_vendor_fiscal_year, "data/out/summary_by_dept_vendor_fiscal_year.csv")
+
+
 
 
 # Meta tables of vendors, categories, and depts ====
