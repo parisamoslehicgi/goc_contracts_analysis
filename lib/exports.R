@@ -485,6 +485,60 @@ get_summary_by_fiscal_year_by_specific_entity <- function(filter_column, filter_
   
 }
 
+get_summary_by_fiscal_year_by_specific_entities <- function(filter_column, filter_search, grouping_column1 = FALSE, grouping_column2 = FALSE, filter_vendors = FALSE) {
+  
+  output <- contract_spending_by_date %>%
+    
+    filter(across(all_of(filter_column)) == !!filter_search) %>%
+    filter_vendors_if_required(filter_vendors) %>%
+    group_by_grouping_columns_and_fiscal_year_if_required(c(grouping_column1, grouping_column2)) %>%
+    summarize_fiscal_year_totals() %>%
+    ungroup() %>%
+    
+    select_by_grouping_columns_if_required(c(grouping_column1, grouping_column2)) %>%
+    
+    exports_round_totals()
+  
+  return(output)
+  
+}
+
+group_by_grouping_columns_and_fiscal_year_if_required <- function(data, grouping_columns) {
+  
+  columns <- grouping_columns[grouping_columns != FALSE]
+  
+  if (length(columns) == 0) {
+    
+    data <- data %>% group_by(d_fiscal_year)
+    
+  } else {
+    
+    data <- data %>% group_by(across(all_of(columns)), d_fiscal_year)
+    
+  }
+  
+  return(data)
+  
+}
+
+select_by_grouping_columns_if_required <- function(data, grouping_columns) {
+  
+  columns <- grouping_columns[grouping_columns != FALSE]
+  
+  if (length(columns) == 0) {
+    
+    data <- data %>% select(d_fiscal_year, total_amount)
+    
+  } else {
+    
+    data <- data %>% select(all_of(columns), d_fiscal_year, total_amount)
+    
+  }
+  
+  return(data)
+  
+}
+
 # # Example usage
 # 
 # ## By org
@@ -871,6 +925,10 @@ get_summary_total_by_fiscal_year_by_category <- function(category) {
   
 }
 
+get_summary_total_by_fiscal_year_by_it_subcategory <- function(it_subcategory) {
+  get_summary_by_fiscal_year_by_specific_entity("d_most_recent_it_subcategory", it_subcategory)
+}
+
 get_summary_overall_total_by_vendor_by_category <- function(category) {
   
   output <- contract_spending_by_date %>%
@@ -921,11 +979,18 @@ get_summary_total_by_owner_org_and_fiscal_year_by_it_subcategory <- function(it_
   
 }
 
-get_summary_total_by_fiscal_year_by_it_subcategory <- function(it_subcategory) {
+### Added by Debaleena #####
+
+
+get_summary_total_by_owner_org_and_vendor_and_fiscal_year_by_it_subcategory <- function(it_subcategory) {
   
-  get_summary_by_fiscal_year_by_specific_entity("d_most_recent_it_subcategory", it_subcategory)
+  get_summary_by_fiscal_year_by_specific_entities("d_most_recent_it_subcategory", it_subcategory, "owner_org", "d_vendor_name") 
+  #%>%
+  #filter((!is.na(d_most_recent_it_subcategory)) & (!is.na(d_vendor_name)))
   
 }
+
+####################################
 
 get_summary_overall_total_by_vendor_by_it_subcategory <- function(it_subcategory) {
   
