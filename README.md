@@ -45,3 +45,4 @@ You can get in touch with the research team via the [About the project](https://
 This repository is licensed under the [MIT license](https://github.com/GoC-Spending/contracts-data-web/blob/main/LICENSE). Source data from the Government of Canada is available under the [Open Government License – Canada](https://open.canada.ca/en/open-government-licence-canada). Please see the license details for specific R packages that are used for more information.
 
 _A Carleton SPPA Research Project_
+=======
