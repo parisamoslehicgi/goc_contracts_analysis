@@ -78,7 +78,7 @@ get_contracts_csv_locally_or_from_url <- function(contract_col_types) {
     
     # Thanks to
     # https://stackoverflow.com/a/35283374/756641
-    options(timeout=4800) # 80 minutes
+    options(timeout=2400) # 40 minutes
     # TODO: Add tryCatch error handling here.
     download.file(url, local_path)
     
@@ -88,9 +88,12 @@ get_contracts_csv_locally_or_from_url <- function(contract_col_types) {
   }
   
   # Import the CSV file
+  total_rows <- length(readLines(local_path))
   contracts <- read_csv(
     local_path,
-    col_types = contract_col_types
+    col_types = contract_col_types,
+    locale = locale(encoding = "UTF-8"),
+    n_max = total_rows
   ) %>%
     clean_names()
   
@@ -196,7 +199,7 @@ is_valid_reporting_period <- function(reporting_period) {
   # TODO confirm if there's a better way of doing this; currently repeats the regex above.
   # Note that this would still accept e.g. "1870-2020-Q6" and other logically invalid examples.
   expected_reporting_period <- str_extract(reporting_period, "(\\d{4}-\\d{4}-Q\\d{1})")
-
+  
   return(as.logical(
     is.na(expected_reporting_period) == FALSE & 
       expected_reporting_period == reporting_period)
@@ -257,7 +260,7 @@ calculate_overall_duration <- function(df, remove_outliers = FALSE) {
     df <- df %>%
       filter(duration_years < summary_maximum_duration_cutoff_years)
   }
-
+  
   
   df
   
@@ -271,7 +274,7 @@ run_log <- tibble_row(
   time = as.character(now()), 
   name = "load_helper_scripts", 
   value = as.character("")
-  )
+)
 
 add_log_entry <- function(name, value = "") {
   input <- tibble_row(
@@ -334,7 +337,7 @@ find_selection_helper <- function(df) {
       d_is_amendment,
       # d_number_of_amendments,
       d_amendment_via
-      )
+    )
   
   df
   
