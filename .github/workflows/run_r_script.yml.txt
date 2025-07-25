@@ -27,4 +27,4 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: contracts_output
-        path: contracts_output.csv
+        path: data/out/contract_spending_overall_expiring_2025.csv
