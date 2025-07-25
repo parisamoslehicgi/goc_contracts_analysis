@@ -1,0 +1,30 @@
+name: Run R Script
+
+on:
+  schedule:
+    - cron: '0 10 * * *' # Every day at 10 AM UTC (adjust as needed)
+  workflow_dispatch: # Allows manual trigger too
+
+jobs:
+  run-script:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up R
+      uses: r-lib/actions/setup-r@v2
+
+    - name: Install dependencies
+      run: |
+        Rscript -e 'install.packages(c("dplyr", "readr", "tidyr", "stringr", "httr", "jsonlite"))'
+
+    - name: Run R script
+      run: Rscript main_script.R
+
+    - name: Upload result as artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: contracts_output
+        path: contracts_output.csv
