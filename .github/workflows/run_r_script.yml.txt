@@ -21,7 +21,7 @@ jobs:
         Rscript -e 'install.packages(c("dplyr", "readr", "tidyr", "stringr", "httr", "jsonlite"))'
 
     - name: Run R script
-      run: Rscript main_script.R
+      run: Rscript load.R
 
     - name: Upload result as artifact
       uses: actions/upload-artifact@v3
