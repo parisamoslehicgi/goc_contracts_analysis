@@ -97,7 +97,7 @@ if(! (is.na(option_filter_to_department) | option_filter_to_department == "")) {
 
 
 # Vendor name normalization =====================
-
+message(Sys.time(), "Starting vendor name normalization")
 # Add vendor name normalization here, before amendments are found and combined below.
 # For simplicity, the normalized names are stored in d_vendor_name
 contracts <- contracts %>%
@@ -140,9 +140,9 @@ add_log_entry("summary_start_fiscal_year", convert_start_year_to_fiscal_year(sum
 add_log_entry("summary_end_fiscal_year", convert_start_year_to_fiscal_year(summary_end_fiscal_year_short))
 
 
-
+message(Sys.time(), "Finished vendor name normalization")
 # Initial data mutations ========================
-
+message(Sys.time(), "Starting initial data mutations")
 # Convert Y/N values to logical TRUE/FALSE values, for specific columns
 contracts <- contracts %>%
   mutate(
@@ -166,7 +166,9 @@ contracts <- contracts %>%
       TRUE ~ reference_number
     )
   )
+message(Sys.time(), "Finished initial data mutations")
 ##########################################################################
+message(Sys.time(), "Starting to remove any suffixes (of 3 characters/digits or less) from procurement IDs, to improve the accuracy of procurement ID-based amendment grouping.")
 # Remove any suffixes (of 3 characters/digits or less) from procurement IDs, to improve the accuracy of procurement ID-based amendment grouping.
 # Note: This could be refactored using regexes instead of a multi-stage mutate with string locations. The code below reverses the order of the procurement ID, finds the first "/" (used to denote suffixes in procurement IDs), and if it exists and is less than or equal to 4 characters (including the "/") then it uses the procurement ID with that suffix portion removed.
 contracts <- contracts %>%
@@ -180,7 +182,7 @@ contracts <- contracts %>%
     )
   ) %>%
   select(! starts_with("d_procurement_id_suffix"))
-
+message(Sys.time(), "Use the reporting period if it exists, otherwise get it from the reference number and Store it in d_reporting_period (derived reporting period)")
 # Use the reporting period if it exists, otherwise get it from the reference number
 # Store it in d_reporting_period (derived reporting period)
 contracts <- contracts %>%
@@ -263,7 +265,7 @@ contracts <- contracts %>%
 
 
 # Categorizing into an industry category ========
-
+message(Sys.time(), "Categorizing into an industry category")
 # Get slightly cleaner versions of descriptions and object codes
 # 1. Detect any object codes *in* the description text, based on 3- or 4-digit numbers.
 # 2. Add missing object codes.
@@ -420,6 +422,7 @@ contract_descriptions_object_codes <- contract_descriptions_object_codes %>%
 
 
 ################# Parisa added #####################
+message(Sys.time(), "Starting filter on contracts done by CGI")
 library(dplyr)
 
 contracts_filtered_like_CGI <- contracts %>%
@@ -465,7 +468,7 @@ add_log_entry("finish_amendment_grouping")
 ##########################################
 
 # Group contracts and amendments together =========
-
+message(Sys.time(), "Starting group contracts and amendments together")
 # Contract spending grouped by amendment groups
 # For each amendment group, find the original row's start date, and the last row's end date
 contract_spending_overall <- contracts %>%
@@ -499,7 +502,7 @@ contract_spending_overall <- contracts %>%
     d_commodity_type = last(na.omit(commodity_type))
   ) %>%
   ungroup()
-
+message(Sys.time(), "Ensure that these entries are unique, for future analysis. From now on, contract_spending_overall represents groups of matched contracts with their amendments.")
 # Ensure that these entries are unique, for future analysis
 # From now on, contract_spending_overall represents groups of 
 # matched contracts with their amendments.
@@ -537,9 +540,9 @@ owner_org_names <- contracts %>%
            into = c("owner_org_name_en", "owner_org_name_fr"),
            sep = " \\| ")
 
-
+message(Sys.time(), "Finished group contracts and amendments together")
 # Clean up original contracts table =============
-
+message(Sys.time(), "Starting clean up original contracts table")
 # Note: for IT subcategory or category troubleshooting, it might be necessary to re-add the origin columns for these categories.
 contracts_individual_entries <- contracts %>%
   select(
@@ -569,10 +572,11 @@ contracts_individual_entries <- contracts %>%
 # rm(contracts)
 
 ##############   MOHAMMAD    ######################
-write.csv(contracts, "contract_large_file.csv")
-write.csv(contract_spending_overall, "contract_spending_overall_file.csv")
+
+write.csv(contracts, "data/out/results/contract_large_file.csv")
+write.csv(contract_spending_overall, "data/out/results/contract_spending_overall_file.csv")
 #####################################################
-write.csv(owner_orgs, "owner_orgs.csv")
+write.csv(owner_orgs, "data/out/results/owner_orgs.csv")
 
 ###################################################################################
 
@@ -677,28 +681,25 @@ contract_spending_overall_active <- contract_spending_overall %>%
   )
 
 ##################### Parisa added ############################
-date_12_months_later <- Sys.Date() + months(12)
-date_24_months_later <- Sys.Date() + months(24)
-date_03_months_later <- Sys.Date() + months(3)
+expiring_time_span_months <- 6
 
-contract_spending_overall_expiring_12 <- contract_spending_overall %>%
-  filter(
-    d_overall_end_date >= date_12_months_later,
-  )
+# contract_spending_overall_expiring <- contract_spending_overall %>%
+# #  filter(d_overall_end_date < as.Date('2024-01-01') & d_overall_end_date > Sys.Date() )
+#    filter(d_overall_end_date >= Sys.Date() & d_overall_end_date <= Sys.Date() + months(expiring_time_span_months))
+# write.csv(contract_spending_overall_expiring, file = "data/out/contract_spending_overall_expiring.csv", row.names = FALSE)
 
-contract_spending_overall_expiring <- contract_spending_overall %>%
-  filter(
-    d_overall_end_date >= date_12_months_later & d_overall_end_date <= date_24_months_later
-  )
+expiring_date_start_period <- as.Date('2025-06-01')
+contract_spending_overall_expiring_2025 <- contract_spending_overall %>%
+   filter(d_overall_end_date >= expiring_date_start_period & d_overall_end_date <= expiring_date_start_period + months(expiring_time_span_months))
+write.csv(contract_spending_overall_expiring_2025, file = "data/out/contract_spending_overall_expiring_2025.csv", row.names = FALSE)
+# 
+# expiring_date_start_period <- as.Date('2024-01-19')
+# contract_spending_overall_expiring_2024Q1 <- contract_spending_overall %>%
+#    filter(d_overall_end_date >= expiring_date_start_period & d_overall_end_date <= expiring_date_start_period + months(expiring_time_span_months))
+# write.csv(contract_spending_overall_expiring_2024Q1, file = "data/out/contract_spending_overall_expiring_2024Q1.csv", row.names = FALSE)
+# 
 
-contract_spending_overall_expiring_new <- contract_spending_overall %>%
-#  filter(d_overall_end_date < as.Date('2024-01-01') & d_overall_end_date > Sys.Date() )
-   filter(d_overall_end_date >= Sys.Date() & d_overall_end_date <= date_03_months_later)
-write.csv(contract_spending_overall_expiring_new, file = "data/out/contract_spending_overall_expiring.csv", row.names = FALSE)
-
-
-#write.csv(contract_spending_overall_expiring, file = "contract_spending_overall_expiring.csv", row.names = FALSE)
-write.csv(contract_spending_overall, file = "contract_spending_overall.csv", row.names = FALSE)
+write.csv(contract_spending_overall, file = "data/out/contract_spending_overall_expiring.csv", row.names = FALSE)
 
 ###############################################################
 ##### Added by Debaleena #################
@@ -897,6 +898,7 @@ summary_it_subcategories = tibble(it_subcategory = it_subcategories)
 # write.csv(summary_by_dept_vendor_fiscal_year, "summary_by_dept_vendor_fiscal_year.csv")
 
 ###### added by Ali ######
+message(Sys.time(), "Start creatng summary by dept vendor fiscal year")
 summary_by_dept_vendor_fiscal_year <- contract_spending_by_date %>%
   group_by(d_fiscal_year_short, owner_org, d_vendor_name, d_most_recent_it_subcategory, d_most_recent_category) %>%
   summarise(
@@ -911,113 +913,113 @@ write.csv(summary_by_dept_vendor_fiscal_year, "data/out/summary_by_dept_vendor_f
 
 
 
-# Meta tables of vendors, categories, and depts ====
+# # Meta tables of vendors, categories, and depts ====
 
-meta_vendors <- tibble(name = summary_included_vendors)
+# meta_vendors <- tibble(name = summary_included_vendors)
 
-meta_vendors <- meta_vendors %>%
-  mutate(
-    filepath = get_vendor_filename_from_vendor_name(name)
-  )
+# meta_vendors <- meta_vendors %>%
+#   mutate(
+#     filepath = get_vendor_filename_from_vendor_name(name)
+#   )
 
-# Bring in vendor labels with friendly capitalization where these exist.
-meta_vendors <- meta_vendors %>%
-  add_friendly_vendor_name_capitalization()
+# # Bring in vendor labels with friendly capitalization where these exist.
+# meta_vendors <- meta_vendors %>%
+#   add_friendly_vendor_name_capitalization()
 
-meta_departments <- owner_org_names %>%
-  rename(
-    name = owner_org_name_en,
-    filepath = owner_org
-  ) %>%
-  select(name, filepath)
+# meta_departments <- owner_org_names %>%
+#   rename(
+#     name = owner_org_name_en,
+#     filepath = owner_org
+#   ) %>%
+#   select(name, filepath)
 
-# Note: add friendly names for category labels
-meta_categories <- category_labels %>%
-  rename(
-    name = category_name,
-    filepath = original_category
-  ) %>%
-  select(name, filepath)
+# # Note: add friendly names for category labels
+# meta_categories <- category_labels %>%
+#   rename(
+#     name = category_name,
+#     filepath = original_category
+#   ) %>%
+#   select(name, filepath)
 
-meta_it_subcategories <- it_subcategory_labels %>%
-  rename(
-    name = it_subcategory_name,
-    filepath = original_it_subcategory
-  ) %>%
-  select(name, filepath)
+# meta_it_subcategories <- it_subcategory_labels %>%
+#   rename(
+#     name = it_subcategory_name,
+#     filepath = original_it_subcategory
+#   ) %>%
+#   select(name, filepath)
 
-# TODO: add friendly names to IT subcategory labels
+# # TODO: add friendly names to IT subcategory labels
 
-# Export CSV files of summary tables =============
+# # Export CSV files of summary tables =============
 
-# Export CSV files of the summary tables
-if(option_update_summary_csv_files == TRUE) {
+# # Export CSV files of the summary tables
+# if(option_update_summary_csv_files == TRUE) {
   
-  # Make per-owner org output directories, if needed
-  create_summary_folders(output_department_path, summary_departments$owner_org)
+#   # Make per-owner org output directories, if needed
+#   create_summary_folders(output_department_path, summary_departments$owner_org)
   
-  # Export department summaries using the reusable function
-  if(option_filter_to_vendor == "") {
-    export_summary(summary_departments, output_department_path)
-  }
-  
-  
-  # Per-vendor summaries
-  # Make directories if needed
-  create_summary_folders(output_vendor_path, summary_vendors$vendor)
-  
-  # Export vendor summaries using the reusable function
-  if(option_filter_to_department == "") {
-    export_summary(summary_vendors, output_vendor_path)
-  }
-  
-  # Per-category summaries
-  # Make directories if needed
-  create_summary_folders(output_category_path, summary_categories$category)
-  
-  # Export category summaries using the reusable function
-  if(option_filter_enabled == FALSE) {
-    export_summary(summary_categories, output_category_path)
-  }
-  
-  # Per-IT subcategory summaries
-  # Make directories if needed
-  create_summary_folders(output_it_subcategory_path, summary_it_subcategories$it_subcategory)
-  
-  # Export IT subcategory summaries using the reusable function
-  if(option_filter_enabled == FALSE) {
-    export_summary(summary_it_subcategories, output_it_subcategory_path)
-  }
+#   # Export department summaries using the reusable function
+#   if(option_filter_to_vendor == "") {
+#     export_summary(summary_departments, output_department_path)
+#   }
   
   
-  # If necessary, create the "meta" folder
-  dir_create(output_meta_path)
+#   # Per-vendor summaries
+#   # Make directories if needed
+#   create_summary_folders(output_vendor_path, summary_vendors$vendor)
   
-  # Export meta files to that location
-  if(option_filter_enabled == FALSE) {
-    meta_vendors %>%
-      write_csv(str_c(output_meta_path, "vendors.csv"))
-    meta_departments %>%
-      write_csv(str_c(output_meta_path, "departments.csv"))
-    meta_categories %>%
-      write_csv(str_c(output_meta_path, "categories.csv"))
-    meta_it_subcategories %>%
-      write_csv(str_c(output_meta_path, "it_subcategories.csv"))
-  }
+#   # Export vendor summaries using the reusable function
+#   if(option_filter_to_department == "") {
+#     export_summary(summary_vendors, output_vendor_path)
+#   }
+  
+#   # Per-category summaries
+#   # Make directories if needed
+#   create_summary_folders(output_category_path, summary_categories$category)
+  
+#   # Export category summaries using the reusable function
+#   if(option_filter_enabled == FALSE) {
+#     export_summary(summary_categories, output_category_path)
+#   }
+  
+#   # Per-IT subcategory summaries
+#   # Make directories if needed
+#   create_summary_folders(output_it_subcategory_path, summary_it_subcategories$it_subcategory)
+  
+#   # Export IT subcategory summaries using the reusable function
+#   if(option_filter_enabled == FALSE) {
+#     export_summary(summary_it_subcategories, output_it_subcategory_path)
+#   }
+  
+  
+#   # If necessary, create the "meta" folder
+#   dir_create(output_meta_path)
+  
+#   # Export meta files to that location
+#   if(option_filter_enabled == FALSE) {
+#     meta_vendors %>%
+#       write_csv(str_c(output_meta_path, "vendors.csv"))
+#     meta_departments %>%
+#       write_csv(str_c(output_meta_path, "departments.csv"))
+#     meta_categories %>%
+#       write_csv(str_c(output_meta_path, "categories.csv"))
+#     meta_it_subcategories %>%
+#       write_csv(str_c(output_meta_path, "it_subcategories.csv"))
+#   }
   
   
   
-  # End summary exports
-  add_log_entry("finish_summary_exports")
+#   # End summary exports
+#   add_log_entry("finish_summary_exports")
   
-  # Note: temporary for manual vendor name normalization work.
-  # TODO: remove this later.
-  vendor_names %>%
-    write_csv("data/testing/tmp_vendor_names.csv")
+#   # Note: temporary for manual vendor name normalization work.
+#   # TODO: remove this later.
+#   vendor_names %>%
+#     write_csv("data/testing/tmp_vendor_names.csv")
   
-  # TODO: remove this later.
-  contract_descriptions_object_codes %>%
-    write_csv("data/testing/tmp_descriptions_object_codes.csv")
+#   # TODO: remove this later.
+#   contract_descriptions_object_codes %>%
+#     write_csv("data/testing/tmp_descriptions_object_codes.csv")
   
   # TODO: remove this later
   # contracts %>%
