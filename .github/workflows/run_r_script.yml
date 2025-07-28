@@ -49,13 +49,22 @@ jobs:
 
     - name: Install required R packages
       run: |
-        dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
-        .libPaths(Sys.getenv("R_LIBS_USER"))
+        Rscript <<EOF
+        dir.create("~/.cache/R", recursive = TRUE, showWarnings = FALSE)
+        .libPaths("~/.cache/R")
+    
         packages <- c(
           "tidyverse", "conflicted", "lubridate", "skimr", "janitor",
           "purrr", "fs", "stringi", "fuzzyjoin", "scales", "curl", "cansim"
         )
-        install.packages(setdiff(packages, rownames(installed.packages())))
+    
+        missing <- setdiff(packages, rownames(installed.packages()))
+        if (length(missing) > 0) {
+          install.packages(missing)
+        } else {
+          message("All packages already installed.")
+        }
+        EOF
 
     - name: Run R script
       run: Rscript load.R
