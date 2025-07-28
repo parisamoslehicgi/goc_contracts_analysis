@@ -18,9 +18,14 @@ jobs:
       with:
           r-version: '4.2.2'
 
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+
     - name: Install dependencies
       run: |
-        Rscript -e 'install.packages(c("dplyr", "tidyr", "readr", "stringr", "jsonlite", "httr", "lubridate", "purrr"))'
+        Rscript -e 'install.packages(c("dplyr", "tidyr", "readr", "stringr", "jsonlite", "httr", "lubridate", "purrr", "curl"))'
 
     - name: Run R script
       run: Rscript load.R
