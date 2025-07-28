@@ -1,9 +1,9 @@
 name: Run R Script
 
 on:
+  workflow_dispatch: # Allows manual trigger too
   schedule:
     - cron: '0 10 * * *' # Every day at 10 AM UTC (adjust as needed)
-  workflow_dispatch: # Allows manual trigger too
 
 jobs:
   run-script:
