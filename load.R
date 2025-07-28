@@ -446,8 +446,9 @@ distinct_categories <- contracts_CGI_only %>%
 # 1_facilities_and_construction
 contracts_cat <- contracts[contracts$category %in% c("3_information_technology", "9_human_capital", "2_professional_services", "11_defence", "0_other"), ]
 contracts_cat_cgi <- contracts_cat[contracts_cat$d_vendor_name %in% c("CGI"), ]
+dir.create("data/out/results", recursive = TRUE, showWarnings = FALSE)
 contracts_cat_cgi %>%
-  write_csv("contracts_cgi_categories.csv")
+  write_csv("data/out/results/contracts_cgi_categories.csv")
 
 contracts <- contracts[contracts$category %in% c("3_information_technology", "9_human_capital", "2_professional_services", "11_defence", "0_other"), ]
 
