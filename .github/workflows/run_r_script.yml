@@ -22,10 +22,10 @@ jobs:
     - name: Cache R packages
       uses: actions/cache@v4
       with:
-        path: ~/.local/share/renv
-        key: ${{ runner.os }}-renv-${{ hashFiles('**/renv.lock') }}
+        path: ~/.cache/R
+        key: ${{ runner.os }}-r-${{ hashFiles('.github/workflows/run_r_script.yml') }}
         restore-keys: |
-          ${{ runner.os }}-renv-
+          ${{ runner.os }}-r-
 
     - name: Install system dependencies
       run: |
@@ -49,10 +49,13 @@ jobs:
 
     - name: Install required R packages
       run: |
-        Rscript -e '.libPaths("~/.local/share/renv"); packages <- c(
+        dir.create(Sys.getenv("R_LIBS_USER"), recursive = TRUE, showWarnings = FALSE)
+        .libPaths(Sys.getenv("R_LIBS_USER"))
+        packages <- c(
           "tidyverse", "conflicted", "lubridate", "skimr", "janitor",
           "purrr", "fs", "stringi", "fuzzyjoin", "scales", "curl", "cansim"
-        ); install.packages(setdiff(packages, rownames(installed.packages())))'
+        )
+        install.packages(setdiff(packages, rownames(installed.packages())))
 
     - name: Run R script
       run: Rscript load.R
