@@ -42,7 +42,7 @@ jobs:
       run: |
         Rscript -e 'install.packages(c(
           "tidyverse", "conflicted", "lubridate", "skimr", "janitor",
-          "purrr", "fs", "stringi", "fuzzyjoin", "scales", "curl"
+          "purrr", "fs", "stringi", "fuzzyjoin", "scales", "curl", "cansim"
         ))'
 
     - name: Run R script
