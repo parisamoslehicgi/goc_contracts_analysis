@@ -52,5 +52,5 @@ jobs:
     - name: Upload result as artifact
       uses: actions/upload-artifact@v4
       with:
-        name: contracts_output
-        path: data/out/contract_spending_overall_expiring_2025.csv
+        name: contracts_analysis_results
+        path: data/out/
