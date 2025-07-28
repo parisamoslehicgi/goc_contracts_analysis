@@ -29,7 +29,8 @@ jobs:
           libfreetype6-dev \
           libharfbuzz-dev \
           libfribidi-dev \
-          libpng-dev
+          libpng-dev \
+          libfontconfig1-dev
 
     - name: Install required R packages
       run: |
