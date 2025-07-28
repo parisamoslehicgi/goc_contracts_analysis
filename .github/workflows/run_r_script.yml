@@ -21,11 +21,14 @@ jobs:
     - name: Install system dependencies
       run: |
         sudo apt-get update
-        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
+        sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev libicu-dev
 
-    - name: Install dependencies
+    - name: Install required R packages
       run: |
-        Rscript -e 'install.packages(c("dplyr", "tidyr", "readr", "stringr", "jsonlite", "httr", "lubridate", "purrr", "curl"))'
+        Rscript -e 'install.packages(c(
+          "tidyverse", "conflicted", "lubridate", "skimr", "janitor",
+          "purrr", "fs", "stringi", "fuzzyjoin", "scales", "curl"
+        ))'
 
     - name: Run R script
       run: Rscript load.R
