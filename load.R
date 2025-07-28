@@ -448,7 +448,7 @@ contracts_cat <- contracts[contracts$category %in% c("3_information_technology",
 contracts_cat_cgi <- contracts_cat[contracts_cat$d_vendor_name %in% c("CGI"), ]
 dir.create("data/out/results", recursive = TRUE, showWarnings = FALSE)
 contracts_cat_cgi %>%
-  write_csv("data/out/results/contracts_cgi_categories.csv")
+  write_csv("data/out/contracts_cgi_categories.csv")
 
 contracts <- contracts[contracts$category %in% c("3_information_technology", "9_human_capital", "2_professional_services", "11_defence", "0_other"), ]
 
@@ -574,10 +574,10 @@ contracts_individual_entries <- contracts %>%
 
 ##############   MOHAMMAD    ######################
 
-write.csv(contracts, "data/out/results/contract_large_file.csv")
-write.csv(contract_spending_overall, "data/out/results/contract_spending_overall_file.csv")
+write.csv(contracts, "data/out/contract_large_file.csv")
+write.csv(contract_spending_overall, "data/out/contract_spending_overall_file.csv")
 #####################################################
-write.csv(owner_orgs, "data/out/results/owner_orgs.csv")
+write.csv(owner_orgs, "data/out/owner_orgs.csv")
 
 ###################################################################################
 
@@ -718,7 +718,7 @@ contracts_it_only  <- contracts_it_only %>%
     d_it_subcategory
   )
 contracts_it_only %>%
-  write_csv("contracts_it_categories.csv")
+  write_csv("data/out/contracts_it_categories.csv")
 add_log_entry("total_csv_entries", count(contracts_it_only))
 ####################################################################################
 
