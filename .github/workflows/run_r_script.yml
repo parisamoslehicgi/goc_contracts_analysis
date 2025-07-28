@@ -30,7 +30,13 @@ jobs:
           libharfbuzz-dev \
           libfribidi-dev \
           libpng-dev \
-          libfontconfig1-dev
+          libfontconfig1-dev \
+          libtiff5-dev \
+          libjpeg-dev \
+          libglpk-dev \
+          libcairo2-dev \
+          libxt-dev \
+          libzstd-dev
 
     - name: Install required R packages
       run: |
