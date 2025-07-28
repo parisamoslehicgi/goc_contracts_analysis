@@ -58,7 +58,7 @@ jobs:
         '
 
     - name: Run R script
-      run: Rscript load.R
+      run: Rscript --verbose load.R
 
     - name: Upload result as artifact
       uses: actions/upload-artifact@v4
