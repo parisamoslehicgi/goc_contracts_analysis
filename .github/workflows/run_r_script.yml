@@ -57,8 +57,19 @@ jobs:
           renv::restore(prompt = FALSE)
         '
 
-    - name: Run R script
-      run: Rscript --verbose load.R
+    - name: Run R script with keep-alive output
+      run: |
+        (
+          while true; do
+            echo "🕐 Still running at $(date)"
+            sleep 300  # 5 minutes
+          done
+        ) &
+        keep_alive_pid=$!
+    
+        Rscript --verbose load.R
+    
+        kill $keep_alive_pid
 
     - name: Upload result as artifact
       uses: actions/upload-artifact@v4
